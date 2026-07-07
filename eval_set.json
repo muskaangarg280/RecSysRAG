@@ -1,0 +1,114 @@
+[
+  {
+    "id": "Q1",
+    "type": "A",
+    "question": "What problem does BPR loss solve, and how does it differ from a pointwise loss?",
+    "gold_sources": ["1205.2618"],
+    "gold_match": "any",
+    "expected": "Pairwise ranking objective for implicit feedback; optimizes relative ordering (observed ranked above unobserved) rather than predicting absolute scores."
+  },
+  {
+    "id": "Q2",
+    "type": "A",
+    "question": "How does Neural Collaborative Filtering improve on classic matrix factorization?",
+    "gold_sources": ["1708.05031"],
+    "gold_match": "any",
+    "expected": "Replaces the fixed inner product of latent factors with a learned neural interaction function (MLP)."
+  },
+  {
+    "id": "Q3",
+    "type": "A",
+    "question": "What is the cold-start problem in recommender systems, and what general strategies address it?",
+    "gold_sources": ["2502.03664", "2201.10711", "2404.13298", "2606.19658"],
+    "gold_match": "any",
+    "expected": "New user/item with no interaction history; strategies use content/side features, metadata alignment, contrastive/meta-learning, pre-training, etc."
+  },
+  {
+    "id": "Q4",
+    "type": "A",
+    "question": "What is the difference between pointwise, pairwise, and listwise learning-to-rank?",
+    "gold_sources": ["2311.01864", "2002.07651", "2409.13703"],
+    "gold_match": "any",
+    "expected": "They differ in what the model is trained to get right: a single item's score (pointwise), the order of a pair (pairwise), or the quality of the whole list (listwise). REPLACES the original two-tower/YouTube question, which the corpus doesn't cover."
+  },
+  {
+    "id": "Q5",
+    "type": "A",
+    "question": "What common flaws does the literature identify in the offline evaluation of recommender systems?",
+    "gold_sources": ["2307.14951"],
+    "gold_match": "any",
+    "expected": "Weak/poorly-tuned baselines, inconsistent datasets and protocols, copied flawed setups. REPLACES the original NDCG-definition question, which no single paper in the corpus covers."
+  },
+  {
+    "id": "Q6",
+    "type": "A",
+    "question": "What did 'Are We Really Making Much Progress?' conclude about recent neural recommendation baselines?",
+    "gold_sources": ["1907.06902"],
+    "gold_match": "any",
+    "expected": "Many reported gains don't hold up; simple, properly-tuned baselines often match or beat recent neural methods due to weak baselines and reproducibility issues."
+  },
+  {
+    "id": "Q7",
+    "type": "B",
+    "question": "How do SASRec and BERT4Rec differ in how they model a user's interaction sequence?",
+    "gold_sources": ["1808.09781", "1904.06690"],
+    "gold_match": "all",
+    "expected": "SASRec uses unidirectional (causal) self-attention for next-item prediction; BERT4Rec uses a bidirectional Transformer with a masked-item (cloze) objective."
+  },
+  {
+    "id": "Q8",
+    "type": "B",
+    "question": "What is the 'memorization vs generalization' motivation behind Wide & Deep?",
+    "gold_sources": ["1606.07792"],
+    "gold_match": "any",
+    "expected": "Wide linear part memorizes seen feature interactions; deep part generalizes to unseen combinations; the two are trained jointly."
+  },
+  {
+    "id": "Q9",
+    "type": "B",
+    "question": "How do matrix-factorization and neural approaches differ in modeling user-item interactions?",
+    "gold_sources": ["1708.05031"],
+    "gold_match": "any",
+    "expected": "MF uses an inner product of latent factors; neural methods learn a nonlinear interaction function. NCF paper directly contrasts the two."
+  },
+  {
+    "id": "Q10",
+    "type": "C",
+    "question": "Compare SASRec and BERT4Rec on both (a) their training objective and (b) their inference/serving characteristics.",
+    "gold_sources": ["1808.09781", "1904.06690"],
+    "gold_match": "all",
+    "expected": "Two distinct sub-answers; forces retrieval and synthesis across both papers. Tests the decomposition agent."
+  },
+  {
+    "id": "Q11",
+    "type": "C",
+    "question": "For a new platform with no user history, which approaches from the literature help with cold-start, and what are their tradeoffs?",
+    "gold_sources": ["2502.03664", "2201.10711", "2404.13298", "2606.19658", "2112.02275"],
+    "gold_match": "any",
+    "expected": "Identify multiple cold-start approaches AND weigh them (data needs, reliance on metadata/content, complexity). Two-step reasoning."
+  },
+  {
+    "id": "Q12",
+    "type": "D",
+    "question": "How do I set up a Kubernetes cluster for model serving?",
+    "gold_sources": [],
+    "gold_match": "none",
+    "expected": "Off-domain. Correct behaviour is to refuse: 'not covered in the provided papers.' Must NOT fabricate an answer."
+  },
+  {
+    "id": "Q13",
+    "type": "D",
+    "question": "Explain the 'HyperGraph-BPR' model and its reported results.",
+    "gold_sources": [],
+    "gold_match": "none",
+    "expected": "Fabricated method that does not exist. Correct behaviour is to refuse rather than hallucinate a description."
+  },
+  {
+    "id": "Q14",
+    "type": "D",
+    "question": "What does the newest 2027 paper on quantum recommender systems propose?",
+    "gold_sources": [],
+    "gold_match": "none",
+    "expected": "Not in the corpus. Correct behaviour is to refuse or route to live arXiv, not to invent an answer."
+  }
+]

@@ -1,0 +1,22 @@
+# Virtual environments
+.venv/
+.venv1/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Mac files
+.DS_Store
+
+# Secrets
+.env
+*.key
+
+# Large/generated data
+data/raw/pdfs/
+data/processed/texts/
+
+# Logs
+*.log
