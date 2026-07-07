@@ -1,3 +1,16 @@
+"""
+Step 1c - Extract clean text from each downloaded PDF.
+
+Uses column-aware block extraction rather than PyMuPDF's simple top-to-bottom
+sort, which interleaves left/right column lines on standard two-column
+academic layouts (producing scrambled sentences). Also strips arXiv's margin
+watermark and makes a best-effort attempt to trim the references section,
+since that's mostly noise for retrieval.
+
+Usage:
+    python extract_text.py
+"""
+
 import re
 from pathlib import Path
 
@@ -10,18 +23,20 @@ METADATA_PATH = Path("data/metadata/papers_metadata.csv")
 TEXT_DIR = Path("data/processed/texts")
 TEXT_DIR.mkdir(parents=True, exist_ok=True)
 
-
-def safe_filename(arxiv_base_id: str) -> str:
-    return arxiv_base_id.replace("/", "_") + ".txt"
-
+MIN_CHARS_FOR_SUCCESS = 1000
 
 # arXiv stamps a vertical watermark down the left margin, e.g.
-# "arXiv:2105.05008v1  [cs.IR]  11 May 2021". With block extraction it becomes
-# its own block instead of being injected mid-word; this strips what remains.
+# "arXiv:2105.05008v1  [cs.IR]  11 May 2021". Column-aware extraction turns
+# this into its own block rather than injecting it mid-word, but this still
+# strips whatever remains.
 ARXIV_WATERMARK = re.compile(
     r"arXiv:\d{4}\.\d{4,5}v?\d*\s*\[[a-z\-\.]+\]\s*\d{1,2}\s+\w+\s+\d{4}",
     re.IGNORECASE,
 )
+
+
+def safe_filename(arxiv_base_id: str) -> str:
+    return arxiv_base_id.replace("/", "_") + ".txt"
 
 
 def clean_extracted_text(text: str) -> str:
@@ -29,7 +44,7 @@ def clean_extracted_text(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
 
-    # Best-effort trim of the references section to reduce retrieval noise.
+    # Best-effort trim of the references section.
     patterns = [
         r"\nReferences\s*\n",
         r"\nREFERENCES\s*\n",
@@ -47,12 +62,11 @@ def extract_page_columns(page) -> str:
     """
     Read a page in column-aware order.
 
-    page.get_text("blocks") returns tuples:
-        (x0, y0, x1, y1, text, block_no, block_type)   block_type 0 = text
-    We split text blocks into left/right by the page midpoint and read the whole
-    left column top-to-bottom, then the whole right column. This avoids the
-    line-by-line interleaving that full-width vertical sorting (sort=True)
-    produced on two-column academic PDFs.
+    page.get_text("blocks") returns tuples of (x0, y0, x1, y1, text, block_no,
+    block_type). Text blocks (block_type == 0) are split into left/right by
+    the page midpoint, and each column is read top-to-bottom, left column
+    first. This avoids the line-by-line interleaving that full-width vertical
+    sorting produces on two-column academic PDFs.
     """
     page_width = page.rect.width
     mid = page_width / 2.0
@@ -70,8 +84,9 @@ def extract_page_columns(page) -> str:
         center = (x0 + x1) / 2.0
         width = x1 - x0
 
-        # Full-width blocks (title band, spanning figures/tables) -> treat as
-        # left so they stay in vertical order rather than being forced right.
+        # Full-width blocks (title band, spanning figures/tables) are kept in
+        # the left stream so they stay in vertical order rather than being
+        # forced into a column that doesn't match their layout.
         if width > 0.7 * page_width or center < mid:
             left.append((y0, btext))
         else:
@@ -115,7 +130,7 @@ def main():
 
         try:
             text = extract_text_from_pdf(Path(pdf_path))
-            status = "extracted" if len(text) >= 1000 else "too_short"
+            status = "extracted" if len(text) >= MIN_CHARS_FOR_SUCCESS else "too_short"
             output_path.write_text(text, encoding="utf-8")
             extract_statuses.append(status)
             text_paths.append(str(output_path))

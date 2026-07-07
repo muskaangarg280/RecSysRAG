@@ -1,14 +1,28 @@
+"""
+Step 1b - Download the PDF for every paper in the metadata CSV.
+
+Reads pdf_url from papers_metadata.csv (produced by collect_papers.py),
+downloads each PDF, and writes back download_status and pdf_path. Skips files
+that already exist on disk, so it's safe to re-run after adding new rows to
+the metadata (e.g. after running add_anchor_papers.py).
+
+Usage:
+    python download_pdfs.py
+"""
+
 import time
 from pathlib import Path
 
-import requests
 import pandas as pd
+import requests
 from tqdm import tqdm
 
 
 METADATA_PATH = Path("data/metadata/papers_metadata.csv")
 PDF_DIR = Path("data/raw/pdfs")
 PDF_DIR.mkdir(parents=True, exist_ok=True)
+
+SECONDS_BETWEEN_DOWNLOADS = 3.2  # be gentle with arXiv
 
 
 def safe_filename(arxiv_base_id: str) -> str:
@@ -20,7 +34,6 @@ def download_pdf(pdf_url: str, output_path: Path) -> bool:
         response = requests.get(pdf_url, timeout=60)
         response.raise_for_status()
 
-        # Basic sanity check
         if "pdf" not in response.headers.get("content-type", "").lower():
             print(f"Warning: response may not be a PDF: {pdf_url}")
 
@@ -66,7 +79,7 @@ def main():
             statuses.append("failed")
             pdf_paths.append("")
 
-        time.sleep(3.2)  # be gentle with arXiv
+        time.sleep(SECONDS_BETWEEN_DOWNLOADS)
 
     df["download_status"] = statuses
     df["pdf_path"] = pdf_paths

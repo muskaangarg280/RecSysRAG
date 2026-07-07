@@ -19,7 +19,7 @@
     "id": "Q3",
     "type": "A",
     "question": "What is the cold-start problem in recommender systems, and what general strategies address it?",
-    "gold_sources": ["2502.03664", "2201.10711", "2404.13298", "2606.19658"],
+    "gold_sources": ["2606.19658","2502.03664","2201.10711","2404.13298","2410.14241","2306.17256","2112.02275","2105.14975","2005.11467","2302.14640","2112.03667"],
     "gold_match": "any",
     "expected": "New user/item with no interaction history; strategies use content/side features, metadata alignment, contrastive/meta-learning, pre-training, etc."
   },
@@ -83,7 +83,7 @@
     "id": "Q11",
     "type": "C",
     "question": "For a new platform with no user history, which approaches from the literature help with cold-start, and what are their tradeoffs?",
-    "gold_sources": ["2502.03664", "2201.10711", "2404.13298", "2606.19658", "2112.02275"],
+    "gold_sources": ["2606.19658","2502.03664","2201.10711","2404.13298","2410.14241","2306.17256","2112.02275","2105.14975","2005.11467","2302.14640","2112.03667"],
     "gold_match": "any",
     "expected": "Identify multiple cold-start approaches AND weigh them (data needs, reliance on metadata/content, complexity). Two-step reasoning."
   },

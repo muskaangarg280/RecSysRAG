@@ -2,4 +2,8 @@ requests
 feedparser
 pandas
 tqdm
-PyMuPDF
+pymupdf
+sentence-transformers
+faiss-cpu
+torch
+groq

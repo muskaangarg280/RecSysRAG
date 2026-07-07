@@ -1,11 +1,25 @@
-import time
+"""
+Step 1a - Collect paper metadata from arXiv.
+
+Queries the arXiv API across a set of recommender-systems keyword searches
+plus a small list of canonical named papers (BPR, NCF, SASRec, BERT4Rec,
+Wide & Deep), merges and deduplicates the results by base arXiv ID, and saves
+one row per paper to a metadata CSV. This CSV is the backbone of the whole
+pipeline - every later step (download, extraction, indexing, citations) keys
+off arxiv_base_id.
+
+Usage:
+    python collect_papers.py
+"""
+
 import re
+import time
 from pathlib import Path
 from urllib.parse import urlencode
 
-import requests
 import feedparser
 import pandas as pd
+import requests
 
 
 BASE_URL = "http://export.arxiv.org/api/query"
@@ -13,8 +27,15 @@ BASE_URL = "http://export.arxiv.org/api/query"
 OUTPUT_PATH = Path("data/metadata/papers_metadata.csv")
 OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-# Broad recommender-system queries.
-# We use multiple smaller queries instead of one giant query because arXiv query syntax can be sensitive.
+# Cap on the final candidate set size. Applied only to the broad keyword
+# queries below - named/canonical papers are never subject to this cap (see
+# main()), so a well-known paper can't be silently dropped just because the
+# keyword queries happened to return enough other results first.
+MAX_CANDIDATE_PAPERS = 150
+
+# Broad recommender-systems queries. Several smaller queries are used instead
+# of one large one because arXiv's query syntax is sensitive to combining too
+# many terms in a single request.
 QUERIES = [
     'cat:cs.IR AND all:"recommender systems"',
     'cat:cs.IR AND all:"recommendation"',
@@ -33,12 +54,12 @@ QUERIES = [
     'cat:cs.LG AND all:"sequential recommendation"',
 ]
 
-# Canonical papers / topics you want to force into the corpus if arXiv has them.
+# Canonical papers that anchor the corpus and back the evaluation set's gold
+# sources. These are searched by title and are exempt from MAX_CANDIDATE_PAPERS.
 NAMED_QUERIES = [
     'all:"Bayesian Personalized Ranking"',
     'all:"Neural Collaborative Filtering"',
     'all:"Wide Deep Learning Recommender Systems"',
-    'all:"Deep Neural Networks for YouTube Recommendations"',
     'all:"Self-Attentive Sequential Recommendation"',
     'all:"BERT4Rec"',
     'all:"Matrix Factorization Techniques for Recommender Systems"',
@@ -46,16 +67,11 @@ NAMED_QUERIES = [
 
 
 def clean_text(text: str) -> str:
-    text = re.sub(r"\s+", " ", text or "").strip()
-    return text
+    return re.sub(r"\s+", " ", text or "").strip()
 
 
 def normalize_arxiv_id(entry_id: str) -> str:
-    """
-    entry_id usually looks like:
-    http://arxiv.org/abs/1708.05031v2
-    We keep the versioned ID for exactness, but also create a base id later.
-    """
+    """entry_id looks like 'http://arxiv.org/abs/1708.05031v2'; keep the version."""
     return entry_id.split("/abs/")[-1].strip()
 
 
@@ -119,33 +135,37 @@ def fetch_query(query: str, max_results: int = 30):
 
 
 def main():
-    all_rows = []
-
-    for query in QUERIES:
-        rows = fetch_query(query, max_results=20)
-        all_rows.extend(rows)
+    named_rows = []
+    for query in NAMED_QUERIES:
+        named_rows.extend(fetch_query(query, max_results=5))
         time.sleep(3.2)  # arXiv asks for no more than one request every 3 seconds
 
-    for query in NAMED_QUERIES:
-        rows = fetch_query(query, max_results=5)
-        all_rows.extend(rows)
+    broad_rows = []
+    for query in QUERIES:
+        broad_rows.extend(fetch_query(query, max_results=20))
         time.sleep(3.2)
 
-    df = pd.DataFrame(all_rows)
+    named_df = pd.DataFrame(named_rows).drop_duplicates(subset=["arxiv_base_id"])
+    broad_df = pd.DataFrame(broad_rows).drop_duplicates(subset=["arxiv_base_id"])
 
-    if df.empty:
+    if named_df.empty and broad_df.empty:
         print("No papers found. Check queries or network connection.")
         return
 
-    # Deduplicate by base arXiv ID so v1/v2 don't duplicate the same paper.
-    df = df.drop_duplicates(subset=["arxiv_base_id"]).reset_index(drop=True)
+    # Named papers go in first and are never truncated, so a canonical paper
+    # can't be dropped just because the broad queries filled the candidate
+    # cap first. Broad results are then deduplicated against the named set
+    # and capped to keep the corpus a manageable size.
+    broad_df = broad_df[~broad_df["arxiv_base_id"].isin(named_df["arxiv_base_id"])]
+    remaining_slots = max(MAX_CANDIDATE_PAPERS - len(named_df), 0)
+    broad_df = broad_df.head(remaining_slots)
 
-    # Keep a manageable candidate set.
-    # You can increase this later.
-    df = df.head(150)
+    df = pd.concat([named_df, broad_df], ignore_index=True)
 
     df.to_csv(OUTPUT_PATH, index=False)
     print(f"\nSaved {len(df)} unique papers to {OUTPUT_PATH}")
+    print(f"  named/canonical: {len(named_df)}")
+    print(f"  broad keyword:   {len(broad_df)}")
 
 
 if __name__ == "__main__":

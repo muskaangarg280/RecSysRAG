@@ -1,31 +1,28 @@
 """
-Guarantees the canonical 'anchor' papers are in the corpus.
+Optional utility - fetch and append specific papers by exact arXiv ID.
 
-The category keyword queries in collect_papers.py don't reliably surface the
-famous named papers in their top results, and df.head(150) then truncated the
-NAMED_QUERIES rows (appended last), so SASRec / BERT4Rec / Wide & Deep went
-missing. This script fetches them by *exact arXiv ID* (which can't be missed)
-and appends any that aren't already present to the existing metadata CSV.
+Useful for guaranteeing a canonical paper is in the corpus (e.g. one that
+doesn't reliably surface through keyword search) or for adding a paper found
+after the initial collection pass. Papers already present in the metadata are
+skipped rather than duplicated.
 
-Run this AFTER collect_papers.py, then re-run download_pdfs.py and
-extract_text.py.
+Usage:
+    python add_anchor_papers.py
 """
 
 import re
 from pathlib import Path
 from urllib.parse import urlencode
 
-import requests
 import feedparser
 import pandas as pd
+import requests
 
 
 BASE_URL = "http://export.arxiv.org/api/query"
 METADATA_PATH = Path("data/metadata/papers_metadata.csv")
 
-# Canonical papers that map to your Step 0 eval questions.
-# BPR and NCF are usually already present via the category queries; listing
-# them here is harmless (they'll just be marked as anchors, not duplicated).
+# arXiv IDs to guarantee are in the corpus, with a short label for logging.
 ANCHOR_IDS = {
     "1205.2618": "BPR: Bayesian Personalized Ranking",
     "1708.05031": "Neural Collaborative Filtering",
@@ -33,8 +30,8 @@ ANCHOR_IDS = {
     "1808.09781": "Self-Attentive Sequential Recommendation (SASRec)",
     "1904.06690": "BERT4Rec",
 }
-# NOTE: "Deep Neural Networks for YouTube Recommendations" (Covington et al.,
-# 2016) is NOT on arXiv, so it can't be fetched here. See the eval-set note.
+# Note: "Deep Neural Networks for YouTube Recommendations" (Covington et al.,
+# 2016) is not on arXiv (ACM-only) and can't be fetched this way.
 
 
 def clean_text(text: str) -> str:
@@ -112,7 +109,6 @@ def main():
     if missing:
         print(f"\nWARNING: these anchor IDs did not come back: {missing}")
 
-    # Mark anchors that already exist, and only append the genuinely new ones.
     existing_ids = set(df["arxiv_base_id"])
     df.loc[df["arxiv_base_id"].isin(returned_ids), "is_anchor"] = True
     new_anchors = anchor_df[~anchor_df["arxiv_base_id"].isin(existing_ids)]
@@ -127,6 +123,7 @@ def main():
     print(f"\nAnchors already present: {len(returned_ids) - len(new_anchors)}")
     print(f"New anchors appended:    {len(new_anchors)}")
     print(f"Total papers now:        {len(combined)}")
+    print("\nNext: re-run download_pdfs.py, then extract_text.py")
 
 
 if __name__ == "__main__":
